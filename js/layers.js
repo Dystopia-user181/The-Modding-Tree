@@ -76,9 +76,21 @@ addLayer("c", {
 			},
 			buy() {
 				if (this.canAfford()) {
-					player.c.points = player.c.points.sub(this.cost());
+					if (!player.o.milestones.includes("1")) player.c.points = player.c.points.sub(this.cost());
 					player.c.buyables[11] = player.c.buyables[11].add(1);
 				}
+			},
+			buyMax() {
+				if (!this.canAfford()) return;
+				var search = 1;
+				while (this.canAfford()) {
+					player.c.buyables[11] = player.c.buyables[11].add(search);
+					search *= 2;
+				}
+				while (!this.canAfford()) {
+					player.c.buyables[11] = player.c.buyables[11].sub(1);
+				}
+				player.c.buyables[11] = player.c.buyables[11].add(1);
 			},
 			canAfford() {
 				return player.c.points.gte(this.cost());
@@ -88,14 +100,16 @@ addLayer("c", {
 			},
 			effect() {
 				var base = player.c.buyables[11].add(this.freeLevels());
+				if (hasUpgrade("c", 21)) base = Decimal.pow(2, player.c.buyables[11].add(this.freeLevels()).pow(0.5)).sub(1);
 				base = base.pow(tmp.c.buyables[13].effect);
 				base = base.mul(tUpgEff("c", 11));
 				base = base.mul(tUpgEff("c", 12));
 				base = base.mul(tmp.o.effect);
+				base = base.mul(player.o.dust.add(1).pow(4));
 				return base;
 			},
 			freeLevels() {
-				return player.c.buyables[12].mul(player.c.upgrades.includes(13)+0);
+				return player.c.buyables[12].mul(hasUpgrade("c", 13)+0).add(player.c.buyables[13].mul(hasUpgrade("c", 15)*10));
 			}
 		},
 		12: {
@@ -108,9 +122,21 @@ addLayer("c", {
 			},
 			buy() {
 				if (this.canAfford()) {
-					player.points = player.points.sub(this.cost());
+					if (!player.o.milestones.includes("1")) player.points = player.points.sub(this.cost());
 					player.c.buyables[12] = player.c.buyables[12].add(1);
 				}
+			},
+			buyMax() {
+				if (!this.canAfford()) return;
+				var search = 1;
+				while (this.canAfford()) {
+					player.c.buyables[12] = player.c.buyables[12].add(search);
+					search *= 2;
+				}
+				while (!this.canAfford()) {
+					player.c.buyables[12] = player.c.buyables[12].sub(1);
+				}
+				player.c.buyables[12] = player.c.buyables[12].add(1);
 			},
 			canAfford() {
 				return player.points.gte(this.cost());
@@ -120,14 +146,14 @@ addLayer("c", {
 			},
 			effect() {
 				var base = player.c.buyables[12].add(1).add(this.freeLevels());
-				base = base.pow(0.5);
+				base = base.pow(hasUpgrade("c", 22)+0.5);
 				return base;
 			},
 			unlocked() {
 				return player.c.buyables[11].gte(5);
 			},
 			freeLevels() {
-				return player.c.buyables[11].mul(player.c.upgrades.includes(13)*0.5).floor()
+				return player.c.buyables[11].mul(hasUpgrade("c", 13)*0.5).floor().add(player.c.buyables[13].mul(hasUpgrade("c", 15)*10))
 			}
 		},
 		13: {
@@ -140,18 +166,30 @@ addLayer("c", {
 			},
 			buy() {
 				if (this.canAfford()) {
-					player.points = player.points.sub(this.cost().p);
-					player.c.points = player.c.points.sub(this.cost().c);
+					if (!player.o.milestones.includes("1")) player.points = player.points.sub(this.cost().p);
+					if (!player.o.milestones.includes("1")) player.c.points = player.c.points.sub(this.cost().c);
 					player.c.buyables[13] = player.c.buyables[13].add(1);
 				}
+			},
+			buyMax() {
+				if (!this.canAfford()) return;
+				var search = 1;
+				while (this.canAfford()) {
+					player.c.buyables[13] = player.c.buyables[13].add(search);
+					search *= 2;
+				}
+				while (!this.canAfford()) {
+					player.c.buyables[13] = player.c.buyables[13].sub(1);
+				}
+				player.c.buyables[13] = player.c.buyables[13].add(1);
 			},
 			canAfford() {
 				return player.points.gte(this.cost().p)&&player.c.points.gte(this.cost().c);
 			},
 			cost() {
 				return {
-					p: Decimal.pow(3, player.c.buyables[13].pow(1.7)).mul(20000),
-					c: Decimal.pow(2, player.c.buyables[13].pow(1.7)).mul(2000),
+					p: Decimal.pow(3, player.c.buyables[13].pow(1.65)).mul(20000),
+					c: Decimal.pow(2, player.c.buyables[13].pow(1.65)).mul(2000),
 				};
 			},
 			effect() {
@@ -200,7 +238,7 @@ addLayer("c", {
 		},
 		13: {
 			title: "Point Pentrifuge",
-			description: "[12] gives free levels to [11], and non-free [11] levels give free levels to [12].",
+			description: "Non-free [12] gives free levels to [11], and non-free [11] levels give free levels to [12].",
 			cost: 1000,
 			unlocked() {
 				return player.c.buyables[11].gte(1)
@@ -219,13 +257,48 @@ addLayer("c", {
 			unlocked() {
 				return player.c.buyables[11].gte(1)
 			}
+		},
+		15: {
+			title: "Free",
+			description: "Each [13] gives ten free levels to [11] and [12].",
+			cost: 1e10,
+			unlocked() {
+				return player.o.milestones.includes("1");
+			}
+		},
+		21: {
+			title: "Great Array of Connected Centrifuges",
+			description: "[11]'s base uses a controlled exponential formula.",
+			cost: 1e13,
+			unlocked() {
+				return player.o.milestones.includes("1");
+			}
+		},
+		22: {
+			title: "Great Array of Connected Pentrifuges",
+			description: "Cube [12].",
+			cost: 1e21,
+			unlocked() {
+				return player.o.milestones.includes("1");
+			}
 		}
 	},
 	autoUpgrade() {
 		return player.o.autoUpg && player.o.milestones.includes("2");
 	},
+	automate() {
+		if (player.o.milestones.includes("1") && player.o.autoBuyBuy) {
+			for (var i = 11; i <= 13; i++) {
+				layers.c.buyables[i].buyMax();
+			}
+		}
+	},
 	update(diff) {
-		if (player.o.milestones.includes("1")) player.c.points = player.c.points.add(tmp.c.resetGain.mul(diff));
+		if (player.o.milestones.includes("0")) addPoints("c", tmp.c.resetGain.mul(diff));
+	},
+	prestigeNotify() {
+		if (player.o.milestones.includes("0")) return;
+		else return player.o.points.div(10).lte(tmp.o.resetGain)
 	}
 })
 addLayer("o", {
@@ -236,9 +309,11 @@ addLayer("o", {
 		unlocked: true,
 		points: new Decimal(0),
 		best: new Decimal(0),
-		autoUpg: false
+		autoUpg: false,
+		autoBuyBuy: false,
+		dust: new Decimal(0)
 	}},
-	color: "#998877",
+	color: "#a76",
 	requires: new Decimal(10000), // Can be a function that takes requirement increases into account
 	resource: "compactors", // Name of prestige currency
 	baseResource: "condensed points", // Name of resource prestige is based on
@@ -248,6 +323,7 @@ addLayer("o", {
 	base: 5,
 	gainMult() { // Calculate the multiplier for main currency from bonuses
 		mult = new Decimal(1)
+		mult = mult.div(tmp.o.buyables[12].effect)
 		return mult
 	},
 	gainExp() { // Calculate the exponent on main currency from bonuses
@@ -262,12 +338,17 @@ addLayer("o", {
 		var base = new Decimal(2);
 		return Decimal.pow(base, player.o.points);
 	},
+	dust() {
+		var mult = new Decimal(1);
+		mult = mult.mul(tmp.o.buyables[11].effect);
+		return player.o.points.pow(1.5).mul(mult);
+	},
 	effectDescription() {
-		return `boosting point and condensed point gain by ${format(tmp.o.effect)}`
+		return `boosting point and condensed point gain by ${format(tmp.o.effect)}${player.o.milestones.includes("3")?` and generating ${format(tmp.o.dust)} dust per second with a cap of ${format(tmp.o.dust.mul(100))}.`:""}`
 	},
 	componentStyles: {
 		milestones: {
-			width: "350px"
+			width: "500px"
 		}
 	},
 	milestones: {
@@ -280,7 +361,8 @@ addLayer("o", {
 		},
 		1: {
 			requirementDescription: "7 compactors",
-			effectDescription: "Autobuy condense buyables, and they cost nothing.",
+			effectDescription: "Autobuy condense buyables, and they cost nothing. Also unlocks a new row of upgrades.",
+			toggles: [["o", "autoBuyBuy"]],
 			done() {
 				return player.o.points.gte(7)
 			}
@@ -292,11 +374,83 @@ addLayer("o", {
 			done() {
 				return player.o.points.gte(9);
 			}
+		},
+		3: {
+			requirementDescription: "18 compactors",
+			effectDescription: "Unlock dust.",
+			done() {
+				return player.o.points.gte(18);
+			}
+		}
+	},
+	buyables: {
+		rows: 3,
+		cols: 3,
+		11: {
+			title: "Dust Gain",
+			display() {
+				return `<span style="font-size: 12px">Make dust gain better.<br>
+				Cost: ${format(tmp.o.buyables[11].cost)} dust
+				Amount: ${format(player.o.buyables[11])}
+				Effect: x${format(tmp.o.buyables[11].effect)}</span>`
+			},
+			buy() {
+				if (this.canAfford()) {
+					player.o.dust = player.o.dust.sub(this.cost());
+					player.o.buyables[11] = player.o.buyables[11].add(1);
+				}
+			},
+			canAfford() {
+				return player.o.dust.gte(this.cost());
+			},
+			cost() {
+				return Decimal.pow(4, player.o.buyables[11]).mul(200);
+			},
+			unlocked() {
+				return player.o.milestones.includes("3")
+			},
+			effect() {
+				return player.o.buyables[11].add(1).pow(0.6);
+			}
+		},
+		12: {
+			title: "Compactor Cheapening",
+			display() {
+				return `<span style="font-size: 12px">Make compactors cheaper.<br>
+				Cost: ${format(tmp.o.buyables[12].cost)} dust
+				Amount: ${format(player.o.buyables[12])}
+				Effect: /${format(tmp.o.buyables[12].effect)}</span>`
+			},
+			buy() {
+				if (this.canAfford()) {
+					player.o.dust = player.o.dust.sub(this.cost());
+					player.o.buyables[12] = player.o.buyables[12].add(1);
+				}
+			},
+			canAfford() {
+				return player.o.dust.gte(this.cost());
+			},
+			cost() {
+				return Decimal.pow(10, player.o.buyables[12].pow(1.2)).mul(1000);
+			},
+			unlocked() {
+				return player.o.milestones.includes("3")
+			},
+			effect() {
+				return Decimal.pow(10, player.o.buyables[12]);
+			}
 		}
 	},
 	upgrades: {
 		rows: 5,
 		cols: 5
 	},
-	branches: ["c"]
+	update(diff) {
+		if (player.o.milestones.includes("3")) player.o.dust = player.o.dust.add(tmp.o.dust.mul(diff));
+		player.o.dust = player.o.dust.min(tmp.o.dust.mul(100));
+	},
+	branches: ["c"],
+	tabFormat: ["main-display", "prestige-button", "resource-display", "milestones", ["raw-html", _=>{
+		return player.o.milestones.includes("3")?`<br><br>You have ${format(player.o.dust)} dust, boosting point gain by x${format(player.o.dust.add(1).pow(4))}.<br><br>`:""
+	}], "buyables"]
 })

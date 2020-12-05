@@ -503,7 +503,7 @@ function upgradeEffect(layer, id){
 }
 function tUpgEff(layer, id, def = 1){
 	def = new Decimal(def);
-	return player[layer].upgrades.includes(id)?(tmp[layer].upgrades[id].effect):def;
+	return hasUpgrade(layer, id)?(tmp[layer].upgrades[id].effect):def;
 }
 
 function challengeEffect(layer, id){
