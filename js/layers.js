@@ -306,7 +306,7 @@ addLayer("o", {
 	symbol: "O", // This appears on the layer's node. Default is the id with the first letter capitalized
 	position: 0, // Horizontal position within a row. By default it uses the layer id and sorts in alphabetical order
 	startData() { return {
-		unlocked: true,
+		unlocked: false,
 		points: new Decimal(0),
 		best: new Decimal(0),
 		autoUpg: false,
@@ -333,7 +333,7 @@ addLayer("o", {
 	hotkeys: [
 		{key: "o", description: "O: Reset for compactors", onPress(){if (canReset(this.layer)) doReset(this.layer)}},
 	],
-	layerShown(){return true},
+	layerShown(){return player.c.points.gte(5000)},
 	effect() {
 		var base = new Decimal(2);
 		return Decimal.pow(base, player.o.points);
