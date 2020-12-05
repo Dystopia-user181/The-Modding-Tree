@@ -284,7 +284,7 @@ addLayer("o", {
 			done() {
 				return player.o.points.gte(7)
 			}
-		}
+		},
 		2: {
 			requirementDescription: "9 compactors",
 			effectDescription: "Unlock auto-condense upgrades.",
