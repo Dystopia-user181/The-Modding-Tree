@@ -313,7 +313,7 @@ addLayer("o", {
 		autoBuyBuy: false,
 		dust: new Decimal(0)
 	}},
-	color: "#a76",
+	color: "#c76",
 	requires: new Decimal(10000), // Can be a function that takes requirement increases into account
 	resource: "compactors", // Name of prestige currency
 	baseResource: "condensed points", // Name of resource prestige is based on
