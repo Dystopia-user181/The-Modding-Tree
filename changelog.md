@@ -1,6 +1,43 @@
 # The Modding Tree changelog:
 
+### v2.2.8 12/03/20
+- Double-clicking a layer node brings you to the main subtab for that layer.
+- Attempted to fix challenges visually updating a different way.
+- Added a softcap function for use in formulas.
+- Added displayRow feature, which lets layers be shown somewhere separate from where they are in the reset order (e.g. side layers)
+- Fixed autoupgrade issue.
 
+### v2.2.7 11/30/20
+- Added autoUpgrade feature.
+- resource-display now shows resource gain per second if passiveGain is active.
+- Fixed formatting issues on some large numbers.
+- Better support for using classed objects in player and in layers/tmp.
+- Made hard resetting more effective.
+- Removed Herobrine from getStartClickables.
+
+### v2.2.6 11/30/20
+- Added goalDescription for challenges and made the new "canComplete" system the standard.
+- Another attempt to fix challenges not visually updating.
+- Fixed side layers not appearing.
+- Fixed getStartClickables again.
+
+### v2.2.5 11/29/20
+- Added features for overriding the displays and costs/goals of upgrades and challenges to make them fully custom.
+- best, total, and unlocked are always automatically added to layerData (but best and total will only display if you add them yourself).
+- Fixed getStartClickables.
+
+### v2.2.4 - 11/28/20
+- Added softcap and softcapPower features (for Normal layers)
+- Offline time limit and default max tick length were fixed (previously the limits were 1000x too large)
+- Added fixOldSaves.
+- You can use HTML in main-display.
+- Fixed a number of minor oddities.
+
+### v2.2.3 - 11/28/20
+- Layers will be highlighted if you can finish a challenge.
+- The "can complete challenge" color now overrides the "already completed" color.
+- Button nodes now work as side "layers".
+- Setting a tooltip to "" hides it entirely.
 
 ### v2.2.2 - 11/22/20
 - Fixed right half of the screen being unclickable in some circumstances.
@@ -195,7 +232,6 @@ which will break old things)
 - Fixed a big save issue. If you use a unique mod id, your save will never conflict with other mods.
 - Added a configurable offline time limit in modinfo at the top of index.html. (default 1 hour)
 - Added a few minor features, and updated the docs with new information.
-
 
 
 ### v1.1.1:

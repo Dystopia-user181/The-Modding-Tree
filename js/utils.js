@@ -1,19 +1,22 @@
 // ************ Number formatting ************
 
-function exponentialFormat(num, precision) {
+function exponentialFormat(num, precision, mantissa = true) {
 	let e = num.log10().floor()
 	let m = num.div(Decimal.pow(10, e))
 	if(m.toStringWithDecimalPlaces(precision) == 10) {
 		m = new Decimal(1)
 		e = e.add(1)
 	}
-	return m.toStringWithDecimalPlaces(precision)+"e"+(e>1e9?format(e, 4):format(e, 0))
-}
+	e = (e.gte(10000) ? commaFormat(e, 0) : e.toStringWithDecimalPlaces(0))
+	if (mantissa)
+		return m.toStringWithDecimalPlaces(precision)+"e"+e
+		else return "e"+e
+	}
 
 function commaFormat(num, precision) {
 	if (num === null || num === undefined) return "NaN"
 	if (num.mag < 0.001) return (0).toFixed(precision)
-	return num.toStringWithDecimalPlaces(precision).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+	return num.toStringWithDecimalPlaces(precision).replace(/(\d)(?=(\d\d\d)+(?!\d))/g, "$1,")
 }
 
 
@@ -33,14 +36,10 @@ function sumValues(x) {
 	return x.reduce((a, b) => Decimal.add(a, b))
 }
 
-function format(decimal, precision=2) {
+function format(decimal, precision=2,) {
 	decimal = new Decimal(decimal)
 	if (isNaN(decimal.sign)||isNaN(decimal.layer)||isNaN(decimal.mag)) {
 		player.hasNaN = true;
-		console.log(format.caller)
-		try{console.log(format.caller.callee)}catch(e){console.log(e)}
-		console.log(layers.m.effect());
-		console.log(layers.m.effect().sqrt());
 		return "NaN"
 	}
 	if (decimal.sign<0) return "-"+format(decimal.neg(), precision)
@@ -50,6 +49,7 @@ function format(decimal, precision=2) {
 		if (slog.gte(1e6)) return "F" + format(slog.floor())
 		else return Decimal.pow(10, slog.sub(slog.floor())).toStringWithDecimalPlaces(3) + "F" + commaFormat(slog.floor(), 0)
 	}
+	else if (decimal.gte("1e100000")) return exponentialFormat(decimal, 0, false)
 	else if (decimal.gte(1e9)) return exponentialFormat(decimal, precision)
 	else if (decimal.gte(1e3)) return commaFormat(decimal, 0)
 	else return regularFormat(decimal, precision)
@@ -65,7 +65,9 @@ function formatWhole(decimal) {
 function formatTime(s) {
 	if (s<60) return format(s)+"s"
 	else if (s<3600) return formatWhole(Math.floor(s/60))+"m "+format(s%60)+"s"
-	else return formatWhole(Math.floor(s/3600))+"h "+formatWhole(Math.floor(s/60)%60)+"m "+format(s%60)+"s"
+	else if (s<86400) return formatWhole(Math.floor(s/3600))+"h "+formatWhole(Math.floor(s/60)%60)+"m "+format(s%60)+"s"
+	else if (s<31536000) return formatWhole(Math.floor(s/84600)%365)+"d " + formatWhole(Math.floor(s/3600)%24)+"h "+formatWhole(Math.floor(s/60)%60)+"m "+format(s%60)+"s"
+	else return formatWhole(Math.floor(s/31536000))+"y "+formatWhole(Math.floor(s/84600)%365)+"d " + formatWhole(Math.floor(s/3600)%24)+"h "+formatWhole(Math.floor(s/60)%60)+"m "+format(s%60)+"s"
 }
 
 function toPlaces(x, precision, maxAccepted) {
@@ -84,7 +86,8 @@ function save() {
 
 function startPlayerBase() {
 	return {
-		tab: "tree",
+		tab: layoutInfo.startTab,
+		navTab: (layoutInfo.showTree ? "tree-tab" : "none"),
 		time: Date.now(),
 		autosave: true,
 		notify: {},
@@ -100,6 +103,7 @@ function startPlayerBase() {
 		showStory: true,
 		points: modInfo.initialStartPoints,
 		subtabs: {},
+		lastSafeTab: (layoutInfo.showTree ? "none" : layoutInfo.startTab)
 	}
 }
 
@@ -114,14 +118,8 @@ function getStartPlayer() {
 
 	playerdata.infoboxes = {}
 	for (layer in layers){
-		playerdata[layer] = layers[layer].startData()
-		playerdata[layer].buyables = getStartBuyables(layer)
-		if(playerdata[layer].clickables == undefined) playerdata[layer].clickables = getStartClickables(layer)
-		playerdata[layer].spentOnBuyables = new Decimal(0)
-		playerdata[layer].upgrades = []
-		playerdata[layer].milestones = []
-		playerdata[layer].achievements = []
-		playerdata[layer].challenges = getStartChallenges(layer)
+		playerdata[layer] = getStartLayerData(layer)
+
 		if (layers[layer].tabFormat && !Array.isArray(layers[layer].tabFormat)) {
 			playerdata.subtabs[layer] = {}
 			playerdata.subtabs[layer].mainTabs = Object.keys(layers[layer].tabFormat)[0]
@@ -136,8 +134,28 @@ function getStartPlayer() {
 			for (item in layers[layer].infoboxes)
 				playerdata.infoboxes[layer][item] = false
 		}
+	
 	}
 	return playerdata
+}
+
+function getStartLayerData(layer){
+	layerdata = {}
+	if (layers[layer].startData) 
+		layerdata = layers[layer].startData()
+
+	if (layerdata.unlocked === undefined) layerdata.unlocked = true
+	if (layerdata.total === undefined) layerdata.total = new Decimal(0)
+	if (layerdata.best === undefined) layerdata.best = new Decimal(0)
+
+	layerdata.buyables = getStartBuyables(layer)
+	if(layerdata.clickables == undefined) layerdata.clickables = getStartClickables(layer)
+	layerdata.spentOnBuyables = new Decimal(0)
+	layerdata.upgrades = []
+	layerdata.milestones = []
+	layerdata.achievements = []
+	layerdata.challenges = getStartChallenges(layer)
+	return layerdata
 }
 
 
@@ -145,7 +163,7 @@ function getStartBuyables(layer){
 	let data = {}
 	if (layers[layer].buyables) {
 		for (id in layers[layer].buyables)
-			if (!isNaN(id))
+			if (isPlainObject(layers[layer].buyables[id]))
 				data[id] = new Decimal(0)
 	}
 	return data
@@ -155,7 +173,7 @@ function getStartClickables(layer){
 	let data = {}
 	if (layers[layer].clickables) {
 		for (id in layers[layer].clickables)
-			if (!isNaN(id))
+			if (isPlainObject(layers[layer].clickables[id]))
 				data[id] = ""
 	}
 	return data
@@ -165,7 +183,7 @@ function getStartChallenges(layer){
 	let data = {}
 	if (layers[layer].challenges) {
 		for (id in layers[layer].challenges)
-			if (!isNaN(id))
+			if (isPlainObject(layers[layer].challenges[id]))
 				data[id] = 0
 	}
 	return data
@@ -209,8 +227,8 @@ function fixData(defaultData, newData) {
 			else
 				newData[item] = new Decimal(newData[item])
 		}
-		else if ((!!defaultData[item]) && (defaultData[item].constructor === Object)) {
-			if (newData[item] === undefined || (defaultData[item].constructor !== Object))
+		else if ((!!defaultData[item]) && (typeof defaultData[item] === "object")) {
+			if (newData[item] === undefined || (typeof defaultData[item] !== "object"))
 				newData[item] = defaultData[item]
 			else
 				fixData(defaultData[item], newData[item])
@@ -228,7 +246,6 @@ function load() {
 	else player = Object.assign(getStartPlayer(), JSON.parse(atob(get)))
 	fixSave()
 
-	player.tab = "tree"
 	if (player.offlineProd) {
 		if (player.offTime === undefined) player.offTime = { remain: 0 }
 		player.offTime.remain += (Date.now() - player.time) / 1000
@@ -244,6 +261,38 @@ function load() {
 	updateTemp();
 	loadVue();
 }
+
+
+function fixNaNs() {
+	NaNcheck(player)
+}
+
+function NaNcheck(data) {
+	for (item in data){
+		if (data[item] == null) {
+		}
+		else if (Array.isArray(data[item])) {
+			NaNcheck(data[item])
+		}
+		else if (data[item] !== data[item] || data[item] === decimalNaN){
+			if (NaNalert === true || confirm ("Invalid value found in player, named '" + item + "'. Please let the creator of this mod know! Would you like to try to auto-fix the save and keep going?")){
+				NaNalert = true
+				data[item] = (data[item] !== data[item] ? 0 : decimalZero)
+			}
+			else {
+				clearInterval(interval);
+				player.autosave = false;
+				NaNalert = true;
+			}
+		}
+		else if (data[item] instanceof Decimal) { // Convert to Decimal
+		}
+		else if ((!!data[item]) && (data[item].constructor === Object)) {
+			NaNcheck(data[item])
+		}
+	}	
+}
+
 
 function exportSave() {
 	let str = btoa(JSON.stringify(player))
@@ -266,6 +315,7 @@ function importSave(imported=undefined, forced=false) {
 		player = tempPlr;
 		player.versionType = modInfo.id
 		fixSave()	
+		versionCheck()
 		save()
 		window.location.reload()
 	} catch(e) {
@@ -282,7 +332,10 @@ function versionCheck() {
 	}
 	
 	if (setVersion) {
-		if (player.versionType == modInfo.id && VERSION.num > player.version) player.keepGoing = false
+		if (player.versionType == modInfo.id && VERSION.num > player.version) {
+			player.keepGoing = false
+			if (fixOldSave) fixOldSave(player.version)
+		} 
 		player.versionType = getStartPlayer().versionType
 		player.version = VERSION.num
 		player.beta = VERSION.beta
@@ -400,6 +453,7 @@ function respecBuyables(layer) {
 
 function canAffordUpgrade(layer, id) {
 	let upg = tmp[layer].upgrades[id]
+	if (tmp[layer].upgrades[id].canAfford !== undefined) return tmp[layer].upgrades[id].canAfford
 	let cost = tmp[layer].upgrades[id].cost
 	return canAffordPurchase(layer, upg, cost) 
 }
@@ -420,6 +474,10 @@ function hasChallenge(layer, id){
 	return (player[layer].challenges[id])
 }
 
+function maxedChallenge(layer, id){
+	return (player[layer].challenges[id] >= tmp[layer].challenges[id].completionLimit)
+}
+
 function challengeCompletions(layer, id){
 	return (player[layer].challenges[id])
 }
@@ -432,9 +490,6 @@ function setBuyableAmount(layer, id, amt){
 	player[layer].buyables[id] = amt
 }
 
-function getBuyableCost(layer, id) {
-	return layers[layer].buyables[id].cost()
-}
 function getClickableState(layer, id){
 	return (player[layer].clickables[id])
 }
@@ -445,6 +500,10 @@ function setClickableState(layer, id, state){
 
 function upgradeEffect(layer, id){
 	return (tmp[layer].upgrades[id].effect)
+}
+function tUpgEff(layer, id, def = 1){
+	def = new Decimal(def);
+	return player[layer].upgrades.includes(id)?(tmp[layer].upgrades[id].effect):def;
 }
 
 function challengeEffect(layer, id){
@@ -488,31 +547,39 @@ function buyUpgrade(layer, id) {
 }
 
 function buyUpg(layer, id) {
+	if (!tmp[layer].upgrades || !tmp[layer].upgrades[id]) return
+	let upg = tmp[layer].upgrades[id]
 	if (!player[layer].unlocked) return
 	if (!tmp[layer].upgrades[id].unlocked) return
 	if (player[layer].upgrades.includes(id)) return
-	let upg = tmp[layer].upgrades[id]
-	let cost = tmp[layer].upgrades[id].cost
+	if (upg.canAfford === false) return
+	let pay = layers[layer].upgrades[id].pay
+	if (pay !== undefined)
+		pay()
+	else 
+		{
+		let cost = tmp[layer].upgrades[id].cost
 
-	if (upg.currencyInternalName){
-		let name = upg.currencyInternalName
-		if (upg.currencyLocation){
-			if (upg.currencyLocation[name].lt(cost)) return
-			upg.currencyLocation[name] = upg.currencyLocation[name].sub(cost)
-		}
-		else if (upg.currencyLayer){
-			let lr = upg.currencyLayer
-			if (player[lr][name].lt(cost)) return
-			player[lr][name] = player[lr][name].sub(cost)
+		if (upg.currencyInternalName){
+			let name = upg.currencyInternalName
+			if (upg.currencyLocation){
+				if (upg.currencyLocation[name].lt(cost)) return
+				upg.currencyLocation[name] = upg.currencyLocation[name].sub(cost)
+			}
+			else if (upg.currencyLayer){
+				let lr = upg.currencyLayer
+				if (player[lr][name].lt(cost)) return
+				player[lr][name] = player[lr][name].sub(cost)
+			}
+			else {
+				if (player[name].lt(cost)) return
+				player[name] = player[name].sub(cost)
+			}
 		}
 		else {
-			if (player[name].lt(cost)) return
-			player[name] = player[name].sub(cost)
+			if (player[layer].points.lt(cost)) return
+			player[layer].points = player[layer].points.sub(cost)	
 		}
-	}
-	else {
-		if (player[layer].points.lt(cost)) return
-		player[layer].points = player[layer].points.sub(cost)	
 	}
 	player[layer].upgrades.push(id);
 	if (upg.onPurchase != undefined)
@@ -550,12 +617,12 @@ function clickClickable(layer, id) {
 // Function to determine if the player is in a challenge
 function inChallenge(layer, id){
 	let challenge = player[layer].activeChallenge
-	if (challenge == null) return
+	if (!challenge) return false
 	id = toNumber(id)
 	if (challenge==id) return true
 
 	if (layers[layer].challenges[challenge].countsAs)
-		return tmp[layer].challenges[id].countsAs.includes(id)
+		return tmp[layer].challenges[challenge].countsAs.includes(id)
 }
 
 // ************ Misc ************
@@ -563,16 +630,45 @@ function inChallenge(layer, id){
 var onTreeTab = true
 function showTab(name) {
 	if (LAYERS.includes(name) && !layerunlocked(name)) return
+	if (player.tab === name && player.subtabs[name] && player.subtabs[name].mainTabs) {
+		console.log("momo")
+		player.subtabs[name].mainTabs = Object.keys(layers[name].tabFormat)[0]
+	}
+	var toTreeTab = name == "none"
+	player.tab = name
+	if (player.navTab == "none" && (tmp[name].row !== "side") && (tmp[name].row !== "otherside")) player.lastSafeTab = name
+	delete player.notify[name]
+	needCanvasUpdate = true
+}
+
+function showNavTab(name) {
+	if (LAYERS.includes(name) && !layerunlocked(name)) return
 
 	var toTreeTab = name == "tree"
-	player.tab = name
-	
-	if (toTreeTab != onTreeTab) {
-		document.getElementById("treeTab").className = toTreeTab ? "fullWidth" : "col left"
-		onTreeTab = toTreeTab
-		resizeCanvas()
+	player.navTab = name
+	player.notify[name] = false
+	needCanvasUpdate = true
+}
+
+
+function goBack() {
+	if (player.navTab !== "none") showTab("none")
+	else showTab(player.lastSafeTab)
+}
+
+function layOver(obj1, obj2) {
+	for (let x in obj2) {
+		if (obj2[x] instanceof Object) layOver(obj1[x], obj2[x]);
+		else obj1[x] = obj2[x];
 	}
-	delete player.notify[name]
+}
+
+function prestigeNotify(layer) {
+	if (layers[layer].prestigeNotify) return layers[layer].prestigeNotify()
+	else if (tmp[layer].autoPrestige || tmp[layer].passiveGeneration) return false
+	else if (tmp[layer].type == "static") return tmp[layer].canReset
+	else if (tmp[layer].type == "normal") return (tmp[layer].canReset && (tmp[layer].resetGain.gte(player[layer].points.div(10))))
+	else return false
 }
 
 function notifyLayer(name) {
@@ -580,23 +676,41 @@ function notifyLayer(name) {
 	player.notify[name] = 1
 }
 
+function subtabShouldNotify(layer, family, id){
+	let subtab = {}
+	if (family == "mainTabs") subtab = tmp[layer].tabFormat[id]
+	else subtab = tmp[layer].microtabs[family][id]
+	if (player.subtabs[layer][family] === id) return false
+	else if (subtab.embedLayer) return tmp[subtab.embedLayer].notify
+	else return subtab.shouldNotify
+}
+
+function subtabResetNotify(layer, family, id){
+	let subtab = {}
+	if (family == "mainTabs") subtab = tmp[layer].tabFormat[id]
+	else subtab = tmp[layer].microtabs[family][id]
+	if (subtab.embedLayer) return tmp[subtab.embedLayer].prestigeNotify
+	else return false
+}
+
 function nodeShown(layer) {
 	if (tmp[layer].layerShown) return true
 	switch(layer) {
 		case "idk":
-			return player.l.unlocked
+			return player.idk.unlocked
 			break;
 	}
 	return false
 }
 
 function layerunlocked(layer) {
+	if (tmp[layer] && tmp[layer].type == "none") return (player[layer].unlocked)
 	return LAYERS.includes(layer) && (player[layer].unlocked || (tmp[layer].baseAmount.gte(tmp[layer].requires) && tmp[layer].layerShown))
 }
 
 function keepGoing() {
 	player.keepGoing = true;
-	showTab("tree")
+	needCanvasUpdate = true;
 }
 
 function toNumber(x) {
@@ -614,7 +728,7 @@ function updateMilestones(layer){
 
 function updateAchievements(layer){
 	for (id in layers[layer].achievements){
-		if (!isNaN(id) && !(player[layer].achievements.includes(id)) && layers[layer].achievements[id].done()) {
+		if (isPlainObject(layers[layer].achievements[id]) && !(player[layer].achievements.includes(id)) && layers[layer].achievements[id].done()) {
 			player[layer].achievements.push(id)
 			if (layers[layer].achievements[id].onComplete) layers[layer].achievements[id].onComplete()
 		}
@@ -678,12 +792,12 @@ function prestigeButtonText(layer)
 		return layers[layer].prestigeButtonText()
 }
 
-
-
-
-
 function isFunction(obj) {
 	return !!(obj && obj.constructor && obj.call && obj.apply);
   };
-  
+
+function isPlainObject(obj) {
+	return (!!obj) && (obj.constructor === Object)
+}
+
 document.title = modInfo.name
