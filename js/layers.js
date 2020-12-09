@@ -387,7 +387,7 @@ addLayer("v", {
 		12: {
 			title: "Vapourise scaling II",
 			description: "Divide compactor costs based on vapourised points.",
-			cost: "1e1500",
+			cost: "1e1490",
 			effect() {
 				return player.v.points.add(10).log10().pow(10);
 			},
