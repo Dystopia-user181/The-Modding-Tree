@@ -679,17 +679,62 @@ button > * {
 }
 
 
+.c:not(.locked):not(.bought) {
+	background: url("condense_background.png");
+	background-size: 100% 100%;
+}
+.v:not(.locked):not(.bought) {
+	background: linear-gradient(45deg, #9cf, #8be, #9cf, #8be, #9cf);
+	background-size: 70px 70px;
+	animation: vapour 10s ease-in-out infinite;
+}
 .o:not(.locked):not(.bought) {
 	background: linear-gradient(#b07766, #bb7060, #c06655, #bb7060, #b07766);
 	background-size: 100% 50%;
 	animation: compact 10s linear infinite;
 }
+.s:not(.locked):not(.bought) {
+	background: repeating-radial-gradient(circle farthest-corner at center center, #111, #222 10%, #111 20%);
+	animation: superdense 5s ease-in-out infinite;
+	color: #fff;
+	border-color: #fff8;
+	background-position: center;
+	transition: all 0.5s, color 0.05s !important;
+}
+.s * {
+	transition: all 0.5s, color 0.05s !important;
+}
 
+@keyframes vapour {
+	0% {
+		background-position: 0% 0%;
+	}
+	20% {
+		background-position: 10% 400%;
+	}
+	40% {
+		background-position: 300% 200%;
+	}
+	100% {
+		background-position: 0% 1000%;
+	}
+}
 @keyframes compact {
 	0% {
 		background-position: 0% 0%;
 	}
 	100% {
 		background-position: 0% 400%;
+	}
+}
+@keyframes superdense {
+	0% {
+		background-size: 100% 100%;
+	}
+	50% {
+		background-size: 300% 300%;
+	}
+	100% {
+		background-size: 100% 100%;
 	}
 }

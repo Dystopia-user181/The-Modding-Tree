@@ -410,7 +410,8 @@ function changeTreeQuality() {
 }
 
 function toggleAuto(toggle) {
-	player[toggle[0]][toggle[1]] = !player[toggle[0]][toggle[1]] 
+	if (toggle[2]) player[toggle[0]][toggle[1]] = toggle[2][(toggle[2].indexOf(player[toggle[0]][toggle[1]])+1)%toggle[2].length]
+	else player[toggle[0]][toggle[1]] = !player[toggle[0]][toggle[1]] 
 }
 
 function adjustMSDisp() {
@@ -446,7 +447,7 @@ function milestoneShown(layer, id) {
 function respecBuyables(layer) {
 	if (!layers[layer].buyables) return
 	if (!layers[layer].buyables.respec) return
-	if (!confirm("Are you sure you want to respec? This will force you to do a \"" + (tmp[layer].name ? tmp[layer].name : layer) + "\" reset as well!")) return
+	if (!confirm(tmp[layer].buyables.respecConfirmation?tmp[layer].buyables.respecConfirmation:"Are you sure you want to respec? This will force you to do a \"" + (tmp[layer].name ? tmp[layer].name : layer) + "\" reset as well!")) return
 	layers[layer].buyables.respec()
 	updateBuyableTemp(layer)
 }
@@ -631,7 +632,6 @@ var onTreeTab = true
 function showTab(name) {
 	if (LAYERS.includes(name) && !layerunlocked(name)) return
 	if (player.tab === name && player.subtabs[name] && player.subtabs[name].mainTabs) {
-		console.log("momo")
 		player.subtabs[name].mainTabs = Object.keys(layers[name].tabFormat)[0]
 	}
 	var toTreeTab = name == "none"

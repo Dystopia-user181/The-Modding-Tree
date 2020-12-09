@@ -57,11 +57,7 @@ var systemComponents = {
 		<div v-if="!tmp[layer].tabFormat">
 			<div v-if="spacing" v-bind:style="{'height': spacing}"></div>
 			<info-box v-if="tmp[layer].infoboxes" :layer="layer" :data="Object.keys(tmp[layer].infoboxes)[0]"></info-box>
-			<main-display v-bind:style="tmp[layer].componentStyles['main-display']" :layer="layer"></main-display>
-			<div v-if="tmp[layer].type !== 'none'">
-				<prestige-button v-bind:style="tmp[layer].componentStyles['prestige-button']" :layer="layer"></prestige-button>
-			</div>
-			<resource-display v-bind:style="tmp[layer].componentStyles['resource-display']" :layer="layer"></resource-display>
+			<prestige-display :layer="layer"></prestige-display>
 			<milestones v-bind:style="tmp[layer].componentStyles.milestones" :layer="layer"></milestones>
 			<div v-if="Array.isArray(tmp[layer].midsection)">
 				<column :layer="layer" :data="tmp[layer].midsection"></column>

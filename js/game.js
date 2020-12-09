@@ -17,6 +17,7 @@ function getResetGain(layer, useType = null) {
 	if (type=="static") {
 		if ((!tmp[layer].canBuyMax) || tmp[layer].baseAmount.lt(tmp[layer].requires)) return new Decimal(1)
 		let gain = tmp[layer].baseAmount.div(tmp[layer].requires).div(tmp[layer].gainMult).max(1).log(tmp[layer].base).times(tmp[layer].gainExp).pow(Decimal.pow(tmp[layer].exponent, -1))
+		if (staticScale[layer].softcap) gain = staticScale[layer].softcap(gain);
 		return gain.floor().sub(player[layer].points).add(1).max(1);
 	} else if (type=="normal"){
 		if (tmp[layer].baseAmount.lt(tmp[layer].requires)) return new Decimal(0)
@@ -43,6 +44,7 @@ function getNextAt(layer, canMax=false, useType = null) {
 	{
 		if (!tmp[layer].canBuyMax) canMax = false
 		let amt = player[layer].points.plus((canMax&&tmp[layer].baseAmount.gte(tmp[layer].nextAt))?tmp[layer].resetGain:0)
+		if (staticScale[layer]) amt = staticScale[layer].scale(amt);
 		let extraCost = Decimal.pow(tmp[layer].base, amt.pow(tmp[layer].exponent).div(tmp[layer].gainExp)).times(tmp[layer].gainMult)
 		let cost = extraCost.times(tmp[layer].requires).max(tmp[layer].requires)
 		if (tmp[layer].roundUpCost) cost = cost.ceil()
@@ -57,7 +59,21 @@ function getNextAt(layer, canMax=false, useType = null) {
 		return layers[layer].getNextAt(canMax)
 	} else {
 		return new Decimal(0)
-	}}
+	}
+}
+
+var staticScale = {
+	o: {
+		scale(amount) {
+			if (amount.lte(500)) return amount;
+			else return amount.mul(1/Math.pow(500, 4/5)).pow(5);
+		},
+		softcap(amount) {
+			if (amount.lte(500)) return amount;
+			else return amount.pow(0.2).mul(Math.pow(500, 4/5));
+		}
+	}
+}
 
 function softcap(value, cap, power = 0.5) {
 	if (value.lte(cap)) return value
@@ -67,7 +83,7 @@ function softcap(value, cap, power = 0.5) {
 
 // Return true if the layer should be highlighted. By default checks for upgrades only.
 function shouldNotify(layer){
-	if (player.tab == layer || player.navTab == layer) return false
+	//if (player.tab == layer || player.navTab == layer) return false
 	for (id in tmp[layer].upgrades){
 		if (!isNaN(id)){
 			if (canAffordUpgrade(layer, id) && !hasUpgrade(layer, id) && tmp[layer].upgrades[id].unlocked){

@@ -137,6 +137,7 @@ function loadVue() {
 		props: ['layer'],
 		template: `
 		<div v-if="tmp[layer].upgrades" class="upgTable">
+			<respec-button v-if="tmp[layer].upgrades.respec && !(tmp[layer].upgrades.showRespec !== undefined && tmp[layer].upgrades.showRespec == false)" :layer = "layer" v-bind:style="[{'margin-bottom': '12px'}, tmp[layer].componentStyles['respec-button']]"></respec-button>
 			<div v-for="row in tmp[layer].upgrades.rows" class="upgRow">
 				<div v-for="col in tmp[layer].upgrades.cols"><div v-if="tmp[layer].upgrades[row*10+col]!== undefined && tmp[layer].upgrades[row*10+col].unlocked" class="upgAlign">
 					<upgrade :layer = "layer" :data = "row*10+col" v-bind:style="tmp[layer].componentStyles.upgrade"></upgrade>
@@ -185,14 +186,14 @@ function loadVue() {
 		<td v-if="tmp[layer].milestones && tmp[layer].milestones[data]!== undefined && milestoneShown(layer, data)" v-bind:style="[(!tmp[layer].milestones[data].unlocked) ? {'visibility': 'hidden'} : {}, tmp[layer].milestones[data].style]" v-bind:class="{milestone: !hasMilestone(layer, data), milestoneDone: hasMilestone(layer, data)}">
 			<h3 v-html="tmp[layer].milestones[data].requirementDescription"></h3><br>
 			<span v-html="tmp[layer].milestones[data].effectDescription"></span><br>
-		<span v-if="(tmp[layer].milestones[data].toggles)&&(hasMilestone(layer, data))" v-for="toggle in tmp[layer].milestones[data].toggles"><toggle :layer= "layer" :data= "toggle" v-bind:style="tmp[layer].componentStyles.toggle"></toggle>&nbsp;</span></td></tr>
+		<span v-if="(tmp[layer].milestones[data].toggles)&&(hasMilestone(layer, data))" v-for="toggle in tmp[layer].milestones[data].toggles"><toggle :layer= "layer" :data= "toggle" v-bind:style="tmp[layer].componentStyles.toggle"></toggle>&nbsp;</span></td>
 		`
 	})
 
 	Vue.component('toggle', {
 		props: ['layer', 'data'],
 		template: `
-		<button class="smallUpg can" v-bind:style="{'background-color': tmp[data[0]].color}" v-on:click="toggleAuto(data)">{{player[data[0]][data[1]]?"ON":"OFF"}}</button>
+		<button class="smallUpg can" v-bind:style="{'background-color': tmp[data[0]].color}" v-on:click="toggleAuto(data)">{{data[2]?player[data[0]][data[1]]:(player[data[0]][data[1]]?"ON":"OFF")}}</button>
 		`
 	})
 
@@ -212,7 +213,7 @@ function loadVue() {
 	Vue.component('main-display', {
 		props: ['layer'],
 		template: `
-		<div><span v-if="player[layer].points.lt('1e1000')">You have </span><h2 v-bind:style="{'color': tmp[layer].color, 'text-shadow': '0px 0px 10px' + tmp[layer].color}">{{formatWhole(player[layer].points)}}</h2> {{tmp[layer].resource}}, <span v-if="tmp[layer].effectDescription" v-html="tmp[layer].effectDescription"></span><br><br></div>
+		<div><span v-if="player[layer].points.lt('1e1000')">You have </span><h2 v-bind:style="{'color': tmp[layer].color, 'text-shadow': '0px 0px 10px' + tmp[layer].color}">{{formatWhole(player[layer].points)}}</h2> {{tmp[layer].resource}}<span v-if="tmp[layer].effectDescription">, <span v-html="tmp[layer].effectDescription"></span></span>.<br><br></div>
 		`
 	})
 
@@ -235,6 +236,20 @@ function loadVue() {
 		props: ['layer', 'data'],
 		template: `
 		<div v-if="tmp[layer].buyables" class="upgTable">
+			<div v-for="row in tmp[layer].buyables.rows" class="upgRow">
+				<div v-for="col in tmp[layer].buyables.cols"><div v-if="tmp[layer].buyables[row*10+col]!== undefined && tmp[layer].buyables[row*10+col].unlocked" class="upgAlign" v-bind:style="{'margin-left': '7px', 'margin-right': '7px',  'height': (data ? data : 'inherit'),}">
+					<buyable :layer = "layer" :data = "row*10+col" :size = "data"></buyable>
+				</div></div>
+				<br>
+			</div>
+		</div>
+	`
+	})
+
+	Vue.component('buyables-respec', {
+		props: ['layer', 'data'],
+		template: `
+		<div v-if="tmp[layer].buyables" class="upgTable">
 			<respec-button v-if="tmp[layer].buyables.respec && !(tmp[layer].buyables.showRespec !== undefined && tmp[layer].buyables.showRespec == false)" :layer = "layer" v-bind:style="[{'margin-bottom': '12px'}, tmp[layer].componentStyles['respec-button']]"></respec-button>
 			<div v-for="row in tmp[layer].buyables.rows" class="upgRow">
 				<div v-for="col in tmp[layer].buyables.cols"><div v-if="tmp[layer].buyables[row*10+col]!== undefined && tmp[layer].buyables[row*10+col].unlocked" class="upgAlign" v-bind:style="{'margin-left': '7px', 'margin-right': '7px',  'height': (data ? data : 'inherit'),}">
@@ -251,7 +266,7 @@ function loadVue() {
 		props: ['layer', 'data', 'size'],
 		template: `
 		<div v-if="tmp[layer].buyables && tmp[layer].buyables[data]!== undefined && tmp[layer].buyables[data].unlocked" style="display: grid">
-			<button v-bind:class="{ buyable: true, can: tmp[layer].buyables[data].canAfford, locked: !tmp[layer].buyables[data].canAfford}"
+			<button v-bind:class="{ [layer]: true, buyable: true, can: tmp[layer].buyables[data].canAfford, locked: !tmp[layer].buyables[data].canAfford}"
 			v-bind:style="[tmp[layer].buyables[data].canAfford ? {'background-color': tmp[layer].color} : {}, size ? {'height': size, 'width': size} : {}, tmp[layer].componentStyles.buyable, tmp[layer].buyables[data].style]"
 			v-on:click="buyBuyable(layer, data)">
 				<span v-if= "tmp[layer].buyables[data].title"><h2 v-html="tmp[layer].buyables[data].title"></h2><br></span>
@@ -267,7 +282,7 @@ function loadVue() {
 	Vue.component('respec-button', {
 		props: ['layer', 'data'],
 		template: `
-			<button v-if="tmp[layer].buyables && tmp[layer].buyables.respec && !(tmp[layer].buyables.showRespec !== undefined && tmp[layer].buyables.showRespec == false)" v-on:click="respecBuyables(layer)" v-bind:class="{ longUpg: true, can: player[layer].unlocked, locked: !player[layer].unlocked }">{{tmp[layer].buyables.respecText ? tmp[layer].buyables.respecText : "Respec"}}</button>
+			<button v-if="tmp[layer].buyables.respec && !(tmp[layer].buyables.showRespec !== undefined && tmp[layer].buyables.showRespec == false)" v-on:click="respecBuyables(layer)" v-bind:class="{ longUpg: true, can: player[layer].unlocked, locked: !player[layer].unlocked }">{{tmp[layer].buyables.respecText ? tmp[layer].buyables.respecText : "Respec"}}</button>
 	`
 	})
 
@@ -400,6 +415,17 @@ function loadVue() {
 		template: `
 			<button v-if="tmp[layer].buyables && tmp[layer].buyables[data].sellAll && !(tmp[layer].buyables[data].canSellAll !== undefined && tmp[layer].buyables[data].canSellAll == false)" v-on:click="tmp[layer].buyables[data].sellAll()" v-bind:class="{ longUpg: true, can: player[layer].unlocked, locked: !player[layer].unlocked }">{{tmp[layer].buyables.sellAllText ? tmp[layer].buyables.sellAllText : "Sell All"}}</button>
 	`
+	})
+
+	Vue.component('prestige-display', {
+		props: ['layer'],
+		template: `<div>
+			<main-display v-bind:style="tmp[layer].componentStyles['main-display']" :layer="layer"></main-display>
+			<div v-if="tmp[layer].type !== 'none'">
+				<prestige-button v-bind:style="tmp[layer].componentStyles['prestige-button']" :layer="layer"></prestige-button>
+			</div>
+			<resource-display v-bind:style="tmp[layer].componentStyles['resource-display']" :layer="layer"></resource-display>
+		</div>`
 	})
 
 	// SYSTEM COMPONENTS

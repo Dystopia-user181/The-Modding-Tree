@@ -34,7 +34,7 @@ function freeLevels(layer, id, format=true) {
 }
 addLayer("c", {
 	name: "condense", // This is optional, only used in a few places, If absent it just uses the layer id.
-	symbol: "C", // This appears on the layer's node. Default is the id with the first letter capitalized
+	symbol: "CD", // This appears on the layer's node. Default is the id with the first letter capitalized
 	position: 0, // Horizontal position within a row. By default it uses the layer id and sorts in alphabetical order
 	startData() { return {
 		unlocked: true,
@@ -53,6 +53,7 @@ addLayer("c", {
 		mult = mult.mul(tmp.c.buyables[12].effect);
 		mult = mult.mul(tUpgEff("c", 14));
 		mult = mult.mul(tmp.o.effect);
+		mult = mult.mul(hasUpgrade("o", 13)?player.o.dust.pow((hasUpgrade("o", 12)+1)*4):1)
 		return mult;
 	},
 	gainExp() { // Calculate the exponent on main currency from bonuses
@@ -96,7 +97,7 @@ addLayer("c", {
 				return player.c.points.gte(this.cost());
 			},
 			cost() {
-				return Decimal.pow(1.5, player.c.buyables[11].pow(1.05)).floor()
+				return Decimal.pow(1.5, player.c.buyables[11].pow(1.05)).div(tmp.o.buyables[13].effect).floor().pow(1-hasUpgrade("v", 11)*0.1)
 			},
 			effect() {
 				var base = player.c.buyables[11].add(this.freeLevels());
@@ -105,11 +106,14 @@ addLayer("c", {
 				base = base.mul(tUpgEff("c", 11));
 				base = base.mul(tUpgEff("c", 12));
 				base = base.mul(tmp.o.effect);
-				base = base.mul(player.o.dust.add(1).pow(4));
+				base = base.mul(player.o.dust.add(1).pow((hasUpgrade("o", 12)+1)*4));
+				base = base.mul(tmp.v.effect);
+				base = base.mul(tUpgEff("s", 11));
+				base = base.pow(tmp.s.buyables[11].effect);
 				return base;
 			},
 			freeLevels() {
-				return player.c.buyables[12].mul(hasUpgrade("c", 13)+0).add(player.c.buyables[13].mul(hasUpgrade("c", 15)*10));
+				return player.c.buyables[12].mul(hasUpgrade("c", 13)+0).add(player.c.buyables[13].mul(hasUpgrade("c", 15)*10)).add(player.o.buyables[13].pow(1.5).floor().mul(3));
 			}
 		},
 		12: {
@@ -142,7 +146,7 @@ addLayer("c", {
 				return player.points.gte(this.cost());
 			},
 			cost() {
-				return Decimal.pow(2, player.c.buyables[12].pow(1.5)).mul(50);
+				return Decimal.pow(2, player.c.buyables[12].pow(1.5)).mul(50).div(tmp.o.buyables[13].effect).floor().pow(1-hasUpgrade("v", 11)*0.1);
 			},
 			effect() {
 				var base = player.c.buyables[12].add(1).add(this.freeLevels());
@@ -153,7 +157,7 @@ addLayer("c", {
 				return player.c.buyables[11].gte(5);
 			},
 			freeLevels() {
-				return player.c.buyables[11].mul(hasUpgrade("c", 13)*0.5).floor().add(player.c.buyables[13].mul(hasUpgrade("c", 15)*10))
+				return player.c.buyables[11].mul(hasUpgrade("c", 13)*0.5).floor().add(player.c.buyables[13].mul(hasUpgrade("c", 15)*10)).add(player.o.buyables[13].pow(1.5).floor().mul(3));
 			}
 		},
 		13: {
@@ -188,9 +192,9 @@ addLayer("c", {
 			},
 			cost() {
 				return {
-					p: Decimal.pow(3, player.c.buyables[13].pow(1.65)).mul(20000),
-					c: Decimal.pow(2, player.c.buyables[13].pow(1.65)).mul(2000),
-				};
+					p: Decimal.pow(3, player.c.buyables[13].pow(1.65)).mul(20000).div(tmp.o.buyables[13].effect).floor().pow(1-hasUpgrade("v", 11)*0.1),
+					c: Decimal.pow(2, player.c.buyables[13].pow(1.65)).mul(2000).div(tmp.o.buyables[13].effect).floor().pow(1-hasUpgrade("v", 11)*0.1)
+				}
 			},
 			effect() {
 				var base = player.c.buyables[13].add(this.freeLevels());
@@ -201,7 +205,7 @@ addLayer("c", {
 				return player.c.buyables[12].gte(5);
 			},
 			freeLevels() {
-				return new Decimal(0);
+				return player.o.buyables[13].pow(1.5).floor().mul(3);
 			}
 		}
 	},
@@ -213,7 +217,7 @@ addLayer("c", {
 			description: "Gain more points based on total condensed points.",
 			cost: 2,
 			effect() {
-				return player.c.total.add(2.5).log(2.5);
+				return player.c.total.add(2.5).log(2.5).pow(hasUpgrade("s", 12)*9+1);
 			},
 			effectDisplay() {
 				return `x${format(tmp.c.upgrades[11].effect)}`;
@@ -249,7 +253,7 @@ addLayer("c", {
 			description: "Gain more condensed points based on points.",
 			cost: 2500,
 			effect() {
-				return player.points.add(10).log(10).pow(0.5);
+				return player.points.add(10).log10().pow(0.5).pow(hasUpgrade("s", 12)*9+1);
 			},
 			effectDisplay() {
 				return `x${format(tmp.c.upgrades[14].effect)}`;
@@ -281,10 +285,37 @@ addLayer("c", {
 			unlocked() {
 				return player.o.milestones.includes("1");
 			}
-		}
-	},
-	autoUpgrade() {
-		return player.o.autoUpg && player.o.milestones.includes("2");
+		},
+		23: {
+			title: "Condensed Dust",
+			description: "Make dust gain better based on condensed points.",
+			cost: 1e90,
+			unlocked() {
+				return player.o.milestones.includes("1");
+			},
+			effect() {
+				return player.c.points.add(10).log10().pow(0.3);
+			},
+			effectDisplay() {
+				return `x${format(this.effect())}`
+			}
+		},
+		24: {
+			title: "Compacted Power",
+			description: "Unlock compact upgrades.",
+			cost: 1e120,
+			unlocked() {
+				return player.o.milestones.includes("1");
+			}
+		},
+		25: {
+			title: "AntiCondense",
+			description: "Unlock vapourised points.",
+			cost: "1e600",
+			unlocked() {
+				return player.o.milestones.includes("1");
+			}
+		},
 	},
 	automate() {
 		if (player.o.milestones.includes("1") && player.o.autoBuyBuy) {
@@ -298,12 +329,112 @@ addLayer("c", {
 	},
 	prestigeNotify() {
 		if (player.o.milestones.includes("0")) return;
-		else return player.o.points.div(10).lte(tmp.o.resetGain)
+		else return player.c.points.div(10).lte(tmp.c.resetGain)
+	},
+	doReset(layer) {
+		if (layers[layer].row > 0) {
+			var keep = [];
+			if (player.o.milestones.includes("2")) keep.push("upgrades");
+			layerDataReset("c", keep);
+			player.o.dust = player.o.dust.div(2);
+		}
+	}
+})
+addLayer("v", {
+	name: "vapour", // This is optional, only used in a few places, If absent it just uses the layer id.
+	symbol: "V", // This appears on the layer's node. Default is the id with the first letter capitalized
+	position: 1, // Horizontal position within a row. By default it uses the layer id and sorts in alphabetical order
+	startData() { return {
+		unlocked: false,
+		points: new Decimal(0),
+	}},
+	color: "#88bbee",
+	requires: new Decimal("1e650"), // Can be a function that takes requirement increases into account
+	resource: "vapourised points", // Name of prestige currency
+	baseResource: "points", // Name of resource prestige is based on
+	baseAmount() {return player.points}, // Get the current amount of baseResource
+	type: "normal", // normal: cost to gain currency depends on amount gained. static: cost depends on how much you already have
+	exponent: 3, // Prestige currency exponent
+	gainMult() { // Calculate the multiplier for main currency from bonuses
+		mult = new Decimal(1);
+		mult = mult.mul(tUpgEff("o", 33));
+		mult = mult.mul(tUpgEff("v", 13));
+		mult = mult.pow(tmp.s.buyables[11].effect);
+		return mult;
+	},
+	gainExp() { // Calculate the exponent on main currency from bonuses
+		return new Decimal(1)
+	},
+	row: 0, // Row the layer is in on the tree (0 is the first row)
+	hotkeys: [
+		{key: "v", description: "V: Reset for vapourised points", onPress(){if (canReset(this.layer)) doReset(this.layer)}},
+	],
+	layerShown(){return hasUpgrade("c", 25)},
+	effect() {
+		return player.v.points.add(10).log10().pow(hasUpgrade("v", 15)*20+10);
+	},
+	effectDescription() {
+		return `boosting point gain by x${format(this.effect())}`
+	},
+	upgrades: {
+		rows: 5,
+		cols: 5,
+		11: {
+			title: "Vapourise scaling",
+			description: "Raise condense buyable costs to the 0.9th power.",
+			cost: "1e400"
+		},
+		12: {
+			title: "Vapourise scaling II",
+			description: "Divide compactor costs based on vapourised points.",
+			cost: "1e1500",
+			effect() {
+				return player.v.points.add(10).log10().pow(10);
+			},
+			effectDisplay() {
+				return `/${format(this.effect())}`
+			}
+		},
+		13: {
+			title: "Vapourise <s>scaling</s>",
+			description: "Condense buyable [12] boosts vapourised points at an increased rate.",
+			cost: "1e1800",
+			effect() {
+				return tmp.c.buyables[12].effect.pow(20);
+			},
+			effectDisplay() {
+				return `x${format(this.effect())}`
+			}
+		},
+		14: {
+			title: "Vapourise Scaling III",
+			description: "Raise dust buyable cost to 0.7.",
+			cost: "1e8800"
+		},
+		15: {
+			title: "A Cubic Metre of Cloud",
+			description: "Cube vapour effect.",
+			cost: "1e15000"
+		}
+	},
+	update(diff) {
+		if (player.s.milestones.includes("0")) addPoints("v", tmp.v.resetGain.mul(diff));
+	},
+	prestigeNotify() {
+		if (player.s.milestones.includes("0")) return;
+		else return player.v.points.div(10).lte(tmp.v.resetGain)
+	},
+	doReset(layer) {
+		if (layers[layer].row > 0) {
+			var keep = [];
+			if (player.o.milestones.includes("5")) keep.push("upgrades");
+			layerDataReset("v", keep);
+		}
 	}
 })
 addLayer("o", {
 	name: "compact", // This is optional, only used in a few places, If absent it just uses the layer id.
-	symbol: "O", // This appears on the layer's node. Default is the id with the first letter capitalized
+	symbol: "CM", // This appears on the layer's node. Default is the id with the first letter capitalized
 	position: 0, // Horizontal position within a row. By default it uses the layer id and sorts in alphabetical order
 	startData() { return {
 		unlocked: false,
@@ -323,28 +454,29 @@ addLayer("o", {
 	base: 5,
 	gainMult() { // Calculate the multiplier for main currency from bonuses
 		mult = new Decimal(1)
-		mult = mult.div(tmp.o.buyables[12].effect)
+		mult = mult.div(tmp.o.buyables[12].effect);
+		mult = mult.div(tUpgEff("v", 12));
 		return mult
-	},
-	gainExp() { // Calculate the exponent on main currency from bonuses
-		return new Decimal(1)
 	},
 	row: 1, // Row the layer is in on the tree (0 is the first row)
 	hotkeys: [
 		{key: "o", description: "O: Reset for compactors", onPress(){if (canReset(this.layer)) doReset(this.layer)}},
 	],
-	layerShown(){return player.c.points.gte(5000)},
+	layerShown(){return player.c.points.gte(5000)||player.o.unlocked},
 	effect() {
 		var base = new Decimal(2);
+		base = base.add(tUpgEff("o", 31));
 		return Decimal.pow(base, player.o.points);
 	},
 	dust() {
 		var mult = new Decimal(1);
 		mult = mult.mul(tmp.o.buyables[11].effect);
-		return player.o.points.pow(1.5).mul(mult);
+		mult = mult.mul(tUpgEff("c", 23));
+		if (hasUpgrade("s", 14)) return Decimal.pow(1.04, player.o.points).pow((hasUpgrade("o", 11)*0.5+1)).mul(mult)
+		return player.o.points.pow((hasUpgrade("o", 11)*0.5+1)*1.5).mul(mult);
 	},
 	effectDescription() {
-		return `boosting point and condensed point gain by ${format(tmp.o.effect)}${player.o.milestones.includes("3")?` and generating ${format(tmp.o.dust)} dust per second with a cap of ${format(tmp.o.dust.mul(100))}.`:""}`
+		return `boosting point and condensed point gain by ${format(tmp.o.effect)}${player.o.milestones.includes("3")?` and generating ${format(tmp.o.dust.mul(hasUpgrade("o", 32)*99+1))} dust per second with a cap of ${format(tmp.o.dust.mul(100))}`:""}`
 	},
 	componentStyles: {
 		milestones: {
@@ -369,8 +501,7 @@ addLayer("o", {
 		},
 		2: {
 			requirementDescription: "9 compactors",
-			effectDescription: "Unlock auto-condense upgrades.",
-			toggles: [["o", "autoUpg"]],
+			effectDescription: "Keep condense upgrades on all resets.",
 			done() {
 				return player.o.points.gte(9);
 			}
@@ -381,13 +512,30 @@ addLayer("o", {
 			done() {
 				return player.o.points.gte(18);
 			}
+		},
+		4: {
+			requirementDescription: "50 compactors",
+			effectDescription: "You can buy max compactors.",
+			done() {
+				return player.o.points.gte(50);
+			}
+		},
+		5: {
+			requirementDescription: "360 compactors",
+			effectDescription: "Keep vapour upgrades on reset, and unlock a new layer.",
+			done() {
+				return player.o.points.gte(360);
+			},
+			unlocked() {
+				return hasUpgrade("c", 25);
+			}
 		}
 	},
 	buyables: {
 		rows: 3,
 		cols: 3,
 		11: {
-			title: "Dust Gain",
+			title: "Dust Gain [11]",
 			display() {
 				return `<span style="font-size: 12px">Make dust gain better.<br>
 				Cost: ${format(tmp.o.buyables[11].cost)} dust
@@ -404,7 +552,7 @@ addLayer("o", {
 				return player.o.dust.gte(this.cost());
 			},
 			cost() {
-				return Decimal.pow(4, player.o.buyables[11]).mul(200);
+				return Decimal.pow(4, player.o.buyables[11]).mul(200).pow(1-hasUpgrade("v", 14)*0.3);
 			},
 			unlocked() {
 				return player.o.milestones.includes("3")
@@ -414,7 +562,7 @@ addLayer("o", {
 			}
 		},
 		12: {
-			title: "Compactor Cheapening",
+			title: "Compactor Cheapening [12]",
 			display() {
 				return `<span style="font-size: 12px">Make compactors cheaper.<br>
 				Cost: ${format(tmp.o.buyables[12].cost)} dust
@@ -431,7 +579,7 @@ addLayer("o", {
 				return player.o.dust.gte(this.cost());
 			},
 			cost() {
-				return Decimal.pow(10, player.o.buyables[12].pow(1.2)).mul(1000);
+				return Decimal.pow(10, player.o.buyables[12].pow(1.2)).mul(1000).pow(1-hasUpgrade("v", 14)*0.3);
 			},
 			unlocked() {
 				return player.o.milestones.includes("3")
@@ -439,18 +587,293 @@ addLayer("o", {
 			effect() {
 				return Decimal.pow(10, player.o.buyables[12]);
 			}
+		},
+		13: {
+			title: "Buyable Cheapening [13]",
+			display() {
+				return `<span style="font-size: 12px">Make condense buyables cheaper, and give free levels to all of them.<br>
+				Cost: ${format(tmp.o.buyables[13].cost)} dust
+				Amount: ${format(player.o.buyables[13])}
+				Effect: /${format(tmp.o.buyables[13].effect)} cost, +${format(tmp.o.buyables[13].effect2)} to levels</span>`
+			},
+			buy() {
+				if (this.canAfford()) {
+					player.o.dust = player.o.dust.sub(this.cost());
+					player.o.buyables[13] = player.o.buyables[13].add(1);
+				}
+			},
+			canAfford() {
+				return player.o.dust.gte(this.cost());
+			},
+			cost() {
+				return Decimal.pow(20, player.o.buyables[13].pow(1.5)).mul(10000).pow(1-hasUpgrade("v", 14)*0.3);
+			},
+			unlocked() {
+				return player.o.milestones.includes("3")
+			},
+			effect() {
+				return Decimal.pow(10000, player.o.buyables[13]);
+			},
+			effect2() {
+				var softcap = new Decimal(40);
+				var base = player.o.buyables[13].pow(1.5).floor().mul(3);
+				if (base.gte(softcap)) base = base.mul(softcap.pow(2)).pow(1/3);
+				return base;
+			}
+		},
+		respec() {
+			player.o.upgrades = player.o.upgrades.filter(_=> _!=11 && _!=12 && _!=13);
+			doReset("o", true);
+		},
+		showRespec() {
+			return hasUpgrade("c", 24);
+		},
+		respecText: "Respec Upgrades",
+		respecConfirmation: "Are you sure you want to respec your upgrades? This will cause a compact reset as well."
+	},
+	upgrades: {
+		rows: 5,
+		cols: 5,
+		11: {
+			title: "1;1",
+			description: "Raise dust gain to 1.5.",
+			cost() {
+				return Decimal.pow(10, player.o.upgrades.length)*50000
+			},
+			currencyInternalName: "dust",
+			currencyDisplayName: "dust",
+			currencyLayer: "o",
+			unlocked() {
+				return hasUpgrade("c", 24)
+			}
+		},
+		12: {
+			title: "1;2",
+			description: "Square dust effect.",
+			cost() {
+				return Decimal.pow(5, player.o.upgrades.length)*600000
+			},
+			currencyInternalName: "dust",
+			currencyDisplayName: "dust",
+			currencyLayer: "o",
+			unlocked() {
+				return hasUpgrade("c", 24)
+			}
+		},
+		13: {
+			title: "1;3",
+			description: "Dust also boosts condensed point gain.",
+			cost() {
+				return Decimal.pow(10, player.o.upgrades.length)*1000000;
+			},
+			currencyInternalName: "dust",
+			currencyDisplayName: "dust",
+			currencyLayer: "o",
+			unlocked() {
+				return hasUpgrade("c", 24)
+			}
+		},
+		21: {
+			style: {visibility: "hidden", height: "40px"},
+			cost: Infinity
+		},
+		31: {
+			title: "2;1",
+			description: "Boost compactor base based on compactors.",
+			cost: 120,
+			unlocked() {
+				return hasUpgrade("c", 24)
+			},
+			effect() {
+				var base = player.o.points.mul(0.01);
+				if (base.gte(1.5)) base = base.mul(1.5).sqrt();
+				if (base.gte(2.5)) base = base.mul(Math.pow(10, 2.5)).log10();
+				return base;
+			},
+			effectDisplay() {
+				return `+${format(this.effect())}`
+			}
+		},
+		32: {
+			title: "2;2",
+			description: "Multiply dust gain by 100 but it caps at 1 second's worth of production.",
+			cost: 250,
+			unlocked() {
+				return hasUpgrade("c", 24)
+			}
+		},
+		33: {
+			title: "2;3",
+			description: "Compactors also boost vapourised points.",
+			cost: 375,
+			unlocked() {
+				return hasUpgrade("c", 24)
+			},
+			effect() {
+				return tmp.o.effect;
+			}
+		}
+	},
+	canBuyMax() {
+		return player.o.milestones.includes("4");
+	},
+	update(diff) {
+		if (player.o.milestones.includes("3")) player.o.dust = player.o.dust.add(tmp.o.dust.mul(diff).mul(hasUpgrade("o", 32)?100:1));
+		player.o.dust = player.o.dust.min(tmp.o.dust.mul(100));
+	},
+	branches: ["c", "v"],
+	tabFormat: ["prestige-display", "milestones", ["raw-html", _=>{
+		return player.o.milestones.includes("3")?`<br><br>You have ${format(player.o.dust)} dust, boosting point gain by x${format(player.o.dust.add(1).pow((hasUpgrade("o", 12)+1)*4))}.<br><br>`:""
+	}], "respec-button", "upgrades", "buyables"]
+})
+addLayer("s", {
+	name: "superdense", // This is optional, only used in a few places, If absent it just uses the layer id.
+	symbol: "S", // This appears on the layer's node. Default is the id with the first letter capitalized
+	position: 1, // Horizontal position within a row. By default it uses the layer id and sorts in alphabetical order
+	startData() { return {
+		unlocked: false,
+		points: new Decimal(0),
+		decayInput: "1",
+		best: new Decimal(0),
+		pentafllryium: new Decimal(0),
+	}},
+	color: "#666",
+	requires: new Decimal("e1200"), // Can be a function that takes requirement increases into account
+	resource: "superdense points", // Name of prestige currency
+	baseResource: "points", // Name of resource prestige is based on
+	baseAmount() {return player.points}, // Get the current amount of baseResource
+	type: "normal", // normal: cost to gain currency depends on amount gained. static: cost depends on how much you already have
+	exponent: 0.003, // Prestige currency exponent
+	gainMult() { // Calculate the multiplier for main currency from bonuses
+		mult = new Decimal(1);
+		mult = mult.mul(tmp.s.effect.spGain);
+		return mult;
+	},
+	gainExp() { // Calculate the exponent on main currency from bonuses
+		return new Decimal(1)
+	},
+	row: 1, // Row the layer is in on the tree (0 is the first row)
+	hotkeys: [
+		{key: "s", description: "S: Reset for superdense points", onPress(){if (canReset(this.layer)) doReset(this.layer)}},
+	],
+	layerShown(){return player.o.milestones.includes("5")},
+	componentStyles: {
+		milestone: {
+			width: "500px",
+			verticalAlign: "middle"
+		}
+	},
+	insert() {
+		let amount = new Decimal(player.s.decayInput);
+		if (player.s.decayInput.includes("%")) amount = player.s.points.mul(parseInt(player.s.decayInput)*0.01).ceil();
+		return amount;
+	},
+	canDecay() {
+		return player.s.points.gte(0)&&player.s.points.gte(tmp.s.insert);
+	},
+	buyables: {
+		rows: 1,
+		cols: 3,
+		11: {
+			title: "Decay α",
+			display() {
+				return `<span style="font-size: 12px">
+				Inserted: ${format(player.s.buyables[11])}<br>
+				Effect: ^${format(tmp.s.buyables[11].effect, 3)} to point gain and v.p. gain<br>
+				Half life: 100s<br>
+				Decays into: ${format(player.s.buyables[11].mul(0.5))} pentafllryium</span>`;
+			},
+			buy() {
+				if (this.canAfford()) {
+					player.s.buyables[11] = player.s.buyables[11].add(tmp.s.insert);
+					player.s.points = player.s.points.sub(tmp.s.insert);
+				}
+			},
+			canAfford() {return layers.s.canDecay()},
+			cost() {
+				return new Decimal(0);
+			},
+			effect() {
+				var base = player.s.buyables[11].add(1000).log(1000).add(4).log(5).pow(0.3);
+				if (base.gte(1.1)) base = base.mul(1.21).pow(1/3);
+				return base;
+			}
 		}
 	},
 	upgrades: {
 		rows: 5,
-		cols: 5
+		cols: 5,
+		11: {
+			title: "Point Relations",
+			description: "Best Superdense points boost point gain.",
+			cost: 1,
+			effect() {
+				return player.s.best.add(1).pow(30);
+			},
+			effectDisplay() {
+				return `x${format(this.effect())}`;
+			}
+		},
+		12: {
+			title: "Acceleration Jerk Jounce Crackle Pop",
+			description: "Raise <b>Inertia Boost</b> and <b>Reverse Inertia</b> to the 10th power.",
+			cost: 20
+		},
+		13: {
+			title: "Unstable Collapse",
+			description: "Unlock superdense decay.",
+			cost: 3000
+		},
+		14: {
+			title: "Unstable Collapse",
+			description: "Compactor to dust uses exponential growth instead of polynomial growth.",
+			cost: 100000
+		}
+	},
+	milestones: {
+		0: {
+			requirementDescription: "300 superdense points",
+			effectDescription: "Gain 100% of vapourised point gain on prestige per second.",
+			done() {
+				return player.s.points.gte(300);
+			}
+		},
+		1: {
+			requirementDescription: "Toggle amount to insert in decays",
+			effectDescription() {
+				return `Currently: ${format(tmp.s.insert)} superdense ${tmp.s.insert.gt(1)?"points":"point"}`
+			},
+			toggles: [["s", "decayInput", ["1", "10", "10%", "50%", "100%"]]],
+			done() {
+				return true;
+			},
+			style: {
+				display: "block"
+			}
+		}
 	},
 	update(diff) {
-		if (player.o.milestones.includes("3")) player.o.dust = player.o.dust.add(tmp.o.dust.mul(diff));
-		player.o.dust = player.o.dust.min(tmp.o.dust.mul(100));
+		var b11diff = player.s.buyables[11];
+		player.s.buyables[11] = player.s.buyables[11].div(Decimal.pow(2, diff/100)).mul(100).floor().div(100);
+		player.s.pentafllryium = player.s.pentafllryium.add(b11diff.sub(player.s.buyables[11]).mul(0.5));
 	},
-	branches: ["c"],
-	tabFormat: ["main-display", "prestige-button", "resource-display", "milestones", ["raw-html", _=>{
-		return player.o.milestones.includes("3")?`<br><br>You have ${format(player.o.dust)} dust, boosting point gain by x${format(player.o.dust.add(1).pow(4))}.<br><br>`:""
-	}], "buyables"]
+	branches: ["c", "v"],
+	tabFormat: {
+		"Main": {
+			content: ["prestige-display", ["milestone", 0], "upgrades"]
+		},
+		"Decay": {
+			content: ["prestige-display", ["milestone", 1], ["raw-html", "<br><br>"], "buyables", ["raw-html", _=> {
+				return `<br><br>You have ${format(player.s.pentafllryium)} pentafllryium, boosting superdense point gain by ${format(tmp.s.effect.spGain)}`
+			}]],
+			unlocked() {
+				return hasUpgrade("s", 13);
+			}
+		}
+	},
+	effect() {
+		return {
+			spGain: player.s.pentafllryium.add(10).log10().pow(1.3)
+		}
+	}
 })
