@@ -779,7 +779,7 @@ addLayer("s", {
 			display() {
 				return `<span style="font-size: 12px">
 				Inserted: ${format(player.s.buyables[11])}<br>
-				Effect: ^${format(tmp.s.buyables[11].effect, 3)} to point gain and v.p. gain<br>
+				Effect: ^${format(tmp.s.buyables[11].effect, 4)} to point gain and v.p. gain<br>
 				Half life: 100s<br>
 				Decays into: ${format(player.s.buyables[11].mul(0.5))} pentafllryium</span>`;
 			},
@@ -825,7 +825,7 @@ addLayer("s", {
 			cost: 3000
 		},
 		14: {
-			title: "Unstable Collapse",
+			title: "Hyperinflation Compactors",
 			description: "Compactor to dust uses exponential growth instead of polynomial growth.",
 			cost: 100000
 		}
@@ -854,7 +854,7 @@ addLayer("s", {
 	},
 	update(diff) {
 		var b11diff = player.s.buyables[11];
-		player.s.buyables[11] = player.s.buyables[11].div(Decimal.pow(2, diff/100)).mul(100).floor().div(100);
+		player.s.buyables[11] = player.s.buyables[11].div(Decimal.pow(2, diff/100)).mul(10000).floor().div(10000);
 		player.s.pentafllryium = player.s.pentafllryium.add(b11diff.sub(player.s.buyables[11]).mul(0.5));
 	},
 	branches: ["c", "v"],
