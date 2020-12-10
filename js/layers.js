@@ -785,7 +785,7 @@ addLayer("s", {
 			display() {
 				return `<span style="font-size: 12px">
 				Inserted: ${format(player.s.buyables[11])}<br>
-				Effect: ^${format(tmp.s.buyables[11].effect, 4)} to point gain and v.p. gain<br>
+				Effect: ^${format(tmp.s.buyables[11].effect, 4)} to point gain and v.p. gain multiplier<br>
 				Half life: 100s<br>
 				Decays into: ${format(player.s.buyables[11].mul(0.5))} pentafllryium</span>`;
 			},
