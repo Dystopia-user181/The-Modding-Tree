@@ -88,16 +88,17 @@ addLayer("c", {
 					player.c.buyables[11] = player.c.buyables[11].add(search);
 					search *= 2;
 				}
-				while (!this.canAfford()) {
-					player.c.buyables[11] = player.c.buyables[11].sub(1);
+				while (!(!this.canAfford()&&this.canAfford(player.c.buyables[11].sub(1)))) {
+					search /= 2;
+					if (this.canAfford()) player.c.buyables[11] = player.c.buyables[11].add(Math.ceil(search));
+					else player.c.buyables[11] = player.c.buyables[11].sub(Math.ceil(search));
 				}
-				player.c.buyables[11] = player.c.buyables[11].add(1);
 			},
-			canAfford() {
-				return player.c.points.gte(this.cost());
+			canAfford(value=player.c.buyables[11]) {
+				return player.c.points.gte(this.cost(value));
 			},
-			cost() {
-				return Decimal.pow(1.5, player.c.buyables[11].pow(1.05)).div(tmp.o.buyables[13].effect).floor().pow(1-hasUpgrade("v", 11)*0.1)
+			cost(value=player.c.buyables[11]) {
+				return Decimal.pow(1.5, value.pow(1.05)).div(tmp.o.buyables[13].effect).floor().pow(1-hasUpgrade("v", 11)*0.1)
 			},
 			effect() {
 				var base = player.c.buyables[11].add(this.freeLevels());
@@ -137,16 +138,17 @@ addLayer("c", {
 					player.c.buyables[12] = player.c.buyables[12].add(search);
 					search *= 2;
 				}
-				while (!this.canAfford()) {
-					player.c.buyables[12] = player.c.buyables[12].sub(1);
+				while (!(!this.canAfford()&&this.canAfford(player.c.buyables[12].sub(1)))) {
+					search /= 2;
+					if (this.canAfford()) player.c.buyables[12] = player.c.buyables[12].add(Math.ceil(search));
+					else player.c.buyables[12] = player.c.buyables[12].sub(Math.ceil(search));
 				}
-				player.c.buyables[12] = player.c.buyables[12].add(1);
 			},
-			canAfford() {
-				return player.points.gte(this.cost());
+			canAfford(value=player.c.buyables[12]) {
+				return player.points.gte(this.cost(value));
 			},
-			cost() {
-				return Decimal.pow(2, player.c.buyables[12].pow(1.5)).mul(50).div(tmp.o.buyables[13].effect).floor().pow(1-hasUpgrade("v", 11)*0.1);
+			cost(value=player.c.buyables[12]) {
+				return Decimal.pow(2, value.pow(1.5)).mul(50).div(tmp.o.buyables[13].effect).floor().pow(1-hasUpgrade("v", 11)*0.1);
 			},
 			effect() {
 				var base = player.c.buyables[12].add(1).add(this.freeLevels());
@@ -182,18 +184,19 @@ addLayer("c", {
 					player.c.buyables[13] = player.c.buyables[13].add(search);
 					search *= 2;
 				}
-				while (!this.canAfford()) {
-					player.c.buyables[13] = player.c.buyables[13].sub(1);
+				while (!(!this.canAfford()&&this.canAfford(player.c.buyables[13].sub(1)))) {
+					search /= 2;
+					if (this.canAfford()) player.c.buyables[13] = player.c.buyables[13].add(Math.ceil(search));
+					else player.c.buyables[13] = player.c.buyables[13].sub(Math.ceil(search));
 				}
-				player.c.buyables[13] = player.c.buyables[13].add(1);
 			},
-			canAfford() {
-				return player.points.gte(this.cost().p)&&player.c.points.gte(this.cost().c);
+			canAfford(value=player.c.buyables[13]) {
+				return player.points.gte(this.cost(value).p)&&player.c.points.gte(this.cost(value).c);
 			},
-			cost() {
+			cost(value=player.c.buyables[13]) {
 				return {
-					p: Decimal.pow(3, player.c.buyables[13].pow(1.65)).mul(20000).div(tmp.o.buyables[13].effect).floor().pow(1-hasUpgrade("v", 11)*0.1),
-					c: Decimal.pow(2, player.c.buyables[13].pow(1.65)).mul(2000).div(tmp.o.buyables[13].effect).floor().pow(1-hasUpgrade("v", 11)*0.1)
+					p: Decimal.pow(3, value.pow(1.65)).mul(20000).div(tmp.o.buyables[13].effect).floor().pow(1-hasUpgrade("v", 11)*0.1),
+					c: Decimal.pow(2, value.pow(1.65)).mul(2000).div(tmp.o.buyables[13].effect).floor().pow(1-hasUpgrade("v", 11)*0.1)
 				}
 			},
 			effect() {
@@ -465,13 +468,13 @@ addLayer("o", {
 	layerShown(){return player.c.points.gte(5000)||player.o.unlocked},
 	effect() {
 		var base = new Decimal(2);
-		base = base.add(tUpgEff("o", 31));
+		base = base.add(tUpgEff("o", 31, 0));
 		return Decimal.pow(base, player.o.points);
 	},
 	dust() {
 		var mult = new Decimal(1);
 		mult = mult.mul(tmp.o.buyables[11].effect);
-		mult = mult.mul(tUpgEff("c", 23));
+		mult = mult.mul(tUpgEff("c", 23, 0));
 		if (hasUpgrade("s", 14)) return Decimal.pow(1.04, player.o.points).pow((hasUpgrade("o", 11)*0.5+1)).mul(mult)
 		return player.o.points.pow((hasUpgrade("o", 11)*0.5+1)*1.5).mul(mult);
 	},
@@ -622,7 +625,7 @@ addLayer("o", {
 			}
 		},
 		respec() {
-			player.o.upgrades = player.o.upgrades.filter(_=> _!=11 && _!=12 && _!=13);
+			Vue.set(player.o, "upgrades", []);
 			doReset("o", true);
 		},
 		showRespec() {
@@ -798,7 +801,31 @@ addLayer("s", {
 				if (base.gte(1.1)) base = base.mul(1.21).pow(1/3);
 				return base;
 			}
-		}
+		},
+		/*12: {
+			title: "Decay α",
+			display() {
+				return `<span style="font-size: 12px">
+				Inserted: ${format(player.s.buyables[12])}<br>
+				Effect: x${format(tmp.s.buyables[12].effect)} to c.p. gain and divides compactor cost by this number<br>
+				Half life: 100s<br>
+				Decays into: ${format(player.s.buyables[12].mul(0.01))} α</span>`;
+			},
+			buy() {
+				if (this.canAfford()) {
+					player.s.buyables[12] = player.s.buyables[12].add(tmp.s.insert);
+					player.s.points = player.s.points.sub(tmp.s.insert);
+				}
+			},
+			canAfford() {return layers.s.canDecay()},
+			cost() {
+				return new Decimal(0);
+			},
+			effect() {
+				var base = player.s.buyables[12].add(1).pow(10);
+				return base;
+			}
+		}*/
 	},
 	upgrades: {
 		rows: 5,
@@ -877,3 +904,32 @@ addLayer("s", {
 		}
 	}
 })
+/*addLayer("sd", {
+	name: "slow", // This is optional, only used in a few places, If absent it just uses the layer id.
+	symbol: "SD", // This appears on the layer's node. Default is the id with the first letter capitalized
+	position: 2, // Horizontal position within a row. By default it uses the layer id and sorts in alphabetical order
+	startData() { return {
+		unlocked: false,
+		points: new Decimal(0),
+	}},
+	color: "#cc9999",
+	requires: new Decimal("1e6600"), // Can be a function that takes requirement increases into account
+	resource: "slowdown", // Name of prestige currency
+	baseResource: "points", // Name of resource prestige is based on
+	baseAmount() {return player.points}, // Get the current amount of baseResource
+	type: "normal", // normal: cost to gain currency depends on amount gained. static: cost depends on how much you already have
+	exponent: 0.01, // Prestige currency exponent
+	gainMult() { // Calculate the multiplier for main currency from bonuses
+		mult = new Decimal(1)
+		return mult
+	},
+	gainExp() { // Calculate the exponent on main currency from bonuses
+		return new Decimal(1)
+	},
+	row: 1, // Row the layer is in on the tree (0 is the first row)
+	hotkeys: [
+		{key: "S", description: "Shift+S: Reset for slowdown", onPress(){if (canReset(this.layer)) doReset(this.layer)}},
+	],
+	layerShown(){return player.s.points.gte(1e18)||player.sd.unlocked},
+	branches: ["c", "v"]
+})*/
