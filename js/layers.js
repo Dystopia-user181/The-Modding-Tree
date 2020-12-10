@@ -474,7 +474,7 @@ addLayer("o", {
 	dust() {
 		var mult = new Decimal(1);
 		mult = mult.mul(tmp.o.buyables[11].effect);
-		mult = mult.mul(tUpgEff("c", 23, 0));
+		mult = mult.mul(tUpgEff("c", 23));
 		if (hasUpgrade("s", 14)) return Decimal.pow(1.04, player.o.points).pow((hasUpgrade("o", 11)*0.5+1)).mul(mult)
 		return player.o.points.pow((hasUpgrade("o", 11)*0.5+1)*1.5).mul(mult);
 	},
