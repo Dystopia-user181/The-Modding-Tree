@@ -714,6 +714,9 @@ addLayer("o", {
 			},
 			effect() {
 				return tmp.o.effect;
+			},
+			unlocked() {
+				return player.v.unlocked
 			}
 		}
 	},
